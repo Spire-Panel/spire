@@ -6,7 +6,7 @@ import { NodeValidator } from "@/lib/models/Node.model";
 import { Permissions } from "@/lib/Roles";
 
 export const GET = withMiddleware(
-  [Permissions.Nodes.Read, Permissions.Servers.Manage],
+  () => [Permissions.Nodes.Read],
   async (req, { models }) => {
     const nodes = await models.Node.find({}).select("-secret");
     return Responses.Success(nodes);
@@ -14,7 +14,7 @@ export const GET = withMiddleware(
 );
 
 export const POST = withMiddleware(
-  [Permissions.Nodes.Write],
+  () => [Permissions.Nodes.Write],
   async (req, { models }) => {
     const body = await req.json().catch(() => {
       throw Errors.BadRequest("Invalid request body");

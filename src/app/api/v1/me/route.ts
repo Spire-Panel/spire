@@ -4,7 +4,7 @@ import { Permissions } from "@/lib/Roles";
 import { getUserPermissions } from "@/actions/roles.actions";
 
 export const GET = withMiddleware(
-  [Permissions.Profile.Self],
+  () => [Permissions.Profile.Self],
   async (request, { models, clerk, userId }) => {
     const user = await clerk.users.getUser(userId);
     if (!user) throw Errors.NotFound("User not found");

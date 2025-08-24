@@ -10,18 +10,20 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { ClerkClient } from "@clerk/backend";
 import { Permissions } from "./Roles";
 
-export const withErrorHandler = (
-  handler: ApiHandler,
-  permissions: Permissions.AllPermissions[] = []
+export const withErrorHandler = <
+  TParams extends Record<string, unknown> = Record<string, unknown>
+>(
+  handler: ApiHandler<TParams>,
+  permissions: (context: { params: TParams }) => Permissions.AllPermissions[]
 ) => {
   return async (
     request: NextRequest,
-    context: {
-      params: Record<string, unknown>;
-      auth: typeof auth;
+    context: ApiHandlerContext<TParams> & {
       clerk: ClerkClient;
     }
   ) => {
+    // Ensure params is not a Promise
+    const params = context.params;
     try {
       const au = await auth();
       if (!au.userId) throw new HttpError(401, "Unauthorized");
@@ -41,7 +43,9 @@ export const withErrorHandler = (
       const roleValid = await isUserAllowed(
         au.userId,
         metadata.role || "user",
-        permissions
+        permissions({
+          params,
+        })
       );
       if (!roleValid)
         throw new HttpError(
@@ -51,9 +55,8 @@ export const withErrorHandler = (
 
       const response = await handler(request, {
         ...context,
-        clerk,
+        params,
         userId: au.userId,
-        auth,
       });
 
       // Only process successful responses (2xx status codes)
@@ -98,7 +101,12 @@ export const withErrorHandler = (
   };
 };
 
-export const AvailableModels = ["Node", "SpireSettings", "Role"] as const;
+export const AvailableModels = [
+  "Node",
+  "SpireSettings",
+  "Role",
+  "Server",
+] as const;
 export type AvailableModels = (typeof AvailableModels)[number];
 
 type ModelDictionary = {
@@ -138,6 +146,7 @@ type ApiHandlerWithModels<
 import Node from "./models/Node.model";
 import SpireSettings from "./models/SpireSettings.model";
 import Role from "./models/Role.model";
+import Server from "./models/Server.model";
 import { isUserAllowed } from "@/actions/roles.actions";
 
 export const withModel = <
@@ -152,6 +161,7 @@ export const withModel = <
       Node,
       SpireSettings,
       Role,
+      Server,
     };
 
     return handler(request, {
@@ -189,7 +199,9 @@ export const applyMiddlewares = <
  * @returns Next.js 13+ App Router API route handler with error handling and models injected
  */
 const wrapWithErrorHandler = <TParams extends Record<string, unknown>>(
-  permissions: Permissions.AllPermissions[],
+  permissions: (context: {
+    params: Record<string, unknown>;
+  }) => Permissions.AllPermissions[],
   handler: ApiHandler<TParams>
 ): ApiHandler<TParams> => {
   return withErrorHandler(
@@ -201,7 +213,9 @@ const wrapWithErrorHandler = <TParams extends Record<string, unknown>>(
 export const withMiddleware = <
   TParams extends Record<string, unknown> = Record<string, unknown>
 >(
-  permissions: Permissions.AllPermissions[],
+  permissions: (context: {
+    params: Record<string, unknown>;
+  }) => Permissions.AllPermissions[],
   handler: ApiHandlerWithModels<TParams>
 ): ApiHandler<TParams> => {
   const withModelMiddleware = withModel<TParams>(handler);

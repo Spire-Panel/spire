@@ -6,9 +6,14 @@ import { APITypes } from "@/types/api";
 import { Permissions } from "@/lib/Roles";
 
 const buildHasPermission =
-  (permissions: Permissions.AllPermissions[]) =>
-  (permission: Permissions.AllPermissions) =>
-    permissions.includes("*") || permissions.includes(permission);
+  (...userPermissions: Permissions.AllPermissions[]) =>
+  (permission: Permissions.AllPermissions | Permissions.AllPermissions[]) => {
+    if (userPermissions.includes("*")) return true;
+    const permissionsToCheck = Array.isArray(permission)
+      ? permission
+      : [permission];
+    return permissionsToCheck.every((p) => userPermissions.includes(p));
+  };
 
 export const useProfile = () => {
   return useQuery({
@@ -20,7 +25,7 @@ export const useProfile = () => {
     },
     select: (data) => ({
       profile: data,
-      hasPermission: buildHasPermission(data.permissions),
+      hasPermission: buildHasPermission(...data.permissions),
     }),
   });
 };

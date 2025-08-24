@@ -8,6 +8,7 @@ const envSchema = z.object({
     .default("mongodb://localhost:27017/spire"),
   JWT_SECRET: z.string().optional().default("secret"),
   JWT_EXPIRES_IN: z.string().optional().default("7d"),
+  DEFAULT_MEMORY: z.string().optional().default("1G"),
 });
 
 try {

@@ -6,6 +6,8 @@ declare global {
   }
 }
 
+export type Without<T, U> = Extract<Exclude<T, U>, string>;
+
 export namespace Permissions {
   export enum Nodes {
     Manage = "nodes:manage",
@@ -18,6 +20,7 @@ export namespace Permissions {
     Read = "servers:read",
     Write = "servers:write",
     Self = "servers:self",
+    Create = "servers:create",
   }
 
   export enum Settings {
@@ -54,6 +57,8 @@ export namespace Permissions {
     | Settings
     | Roles
     | Profile
+    | `${Without<Servers, Servers.Self>}:${string}`
+    | `${Without<Nodes, Nodes.Manage>}:${string}`
     | "*";
 }
 

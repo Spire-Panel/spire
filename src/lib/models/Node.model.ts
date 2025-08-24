@@ -5,6 +5,7 @@ export const NodeValidator = z.object({
   name: z.string(),
   connectionUrl: z.string(),
   secret: z.string(),
+  portAllocations: z.array(z.number()).optional(),
 });
 
 export type INode = z.infer<typeof NodeValidator>;
@@ -23,6 +24,16 @@ const NodeSchema = new mongoose.Schema<INode>(
     secret: {
       type: String,
       required: true,
+    },
+    portAllocations: {
+      type: [Number],
+      required: false,
+      validate: {
+        validator: (v: number[]) => {
+          return v.every((port) => port >= 1024 && port <= 65535);
+        },
+        message: "Port allocations must be between 1024 and 65535",
+      },
     },
   },
   {

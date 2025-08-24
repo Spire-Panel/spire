@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { useQuery } from "@tanstack/react-query";
 
 export const useServerLogs = (
@@ -9,7 +9,7 @@ export const useServerLogs = (
   serverId: string
 ) => {
   const [liveLogs, setLiveLogs] = useState<string[]>([]);
-  const [socket, setSocket] = useState<any>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const { data: pastLogs } = useQuery({
     queryKey: ["logs", serverId],

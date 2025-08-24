@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence } from "motion/react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +12,10 @@ import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useTestNodeConnection } from "@/hooks/useTestNodeConnection";
 import { useTestNodeSecret } from "@/hooks/useTestNodeSecret";
-import { createNode, setApiKey, updateSettings } from "@/actions/db.actions";
+import { createNode, updateSettings } from "@/actions/db.actions";
 import { useRouter } from "next/navigation";
-import type { INode } from "@/lib/models/Node.model";
 import { ActionsError } from "@/actions/utils";
 import { v4 } from "uuid";
-import { useSettingsMutation } from "@/hooks/useSettingsMutation";
-import { useCreateNodeMutation } from "@/hooks/useCreateNodeMutation";
 import { updateRole } from "@/actions/clerk.actions";
 import { useAuth } from "@clerk/nextjs";
 import { createRole } from "@/actions/roles.actions";
@@ -210,10 +207,7 @@ export default function OnboardingPage() {
   ];
 
   const totalSteps = onboardingSteps.length;
-  const currentFields = onboardingSteps[currentStep]?.fields || [];
   const router = useRouter();
-  const settingsMutation = useSettingsMutation();
-  const createNodeMutation = useCreateNodeMutation();
   const { userId } = useAuth();
 
   useEffect(() => {
@@ -222,8 +216,6 @@ export default function OnboardingPage() {
   }, [userId]);
 
   const nextStep = async () => {
-    // Validate current step before proceeding
-
     const currentStepFields = onboardingSteps[currentStep]?.fields || [];
     const requiredFields = currentStepFields.filter((field) => field.required);
     const hasEmptyRequiredFields = requiredFields.some((field) => {
@@ -232,7 +224,6 @@ export default function OnboardingPage() {
     });
 
     if (hasEmptyRequiredFields) {
-      // Handle validation error
       return;
     }
 
@@ -247,15 +238,9 @@ export default function OnboardingPage() {
     }
   };
 
-  const goToStep = (step: number) => {
-    setCurrentStep(step);
-  };
-
   const onSubmit = async (data: OnboardingFormData) => {
     setIsSubmitting(true);
     try {
-      // Here you would typically send the data to your API
-
       try {
         await updateSettings({
           onboardingComplete: true,
@@ -268,8 +253,13 @@ export default function OnboardingPage() {
           data.nodeSecret
         );
 
-        await createRole("user", 0, [Permissions.Profile.Self]);
-        await createRole("admin", 1, ["*"]);
+        await Promise.all([
+          createRole("user", 0, [
+            Permissions.Profile.Self,
+            Permissions.Servers.Self,
+          ]),
+          createRole("admin", 1, ["*"]),
+        ]);
 
         router.push("/dashboard");
       } catch (error) {
@@ -443,7 +433,7 @@ export default function OnboardingPage() {
               <button
                 key={index}
                 type="button"
-                onClick={() => goToStep(index)}
+                onClick={() => setCurrentStep(index)}
                 className={`w-2.5 h-2.5 rounded-full transition-all ${
                   index === currentStep
                     ? "bg-primary w-6"
