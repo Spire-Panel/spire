@@ -9,6 +9,11 @@ declare global {
 export type Without<T, U> = Extract<Exclude<T, U>, string>;
 
 export namespace Permissions {
+  export enum Behaviour {
+    And,
+    Or,
+  }
+
   export enum Nodes {
     Manage = "nodes:manage",
     Read = "nodes:read",

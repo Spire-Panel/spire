@@ -14,7 +14,10 @@ export const withErrorHandler = <
   TParams extends Record<string, unknown> = Record<string, unknown>
 >(
   handler: ApiHandler<TParams>,
-  permissions: (context: { params: TParams }) => Permissions.AllPermissions[]
+  permissions: (context: { params: TParams }) => {
+    behaviour: Permissions.Behaviour;
+    permissions: Permissions.AllPermissions[];
+  }
 ) => {
   return async (
     request: NextRequest,
@@ -22,8 +25,7 @@ export const withErrorHandler = <
       clerk: ClerkClient;
     }
   ) => {
-    // Ensure params is not a Promise
-    const params = context.params;
+    const params = await context.params;
     try {
       const au = await auth();
       if (!au.userId) throw new HttpError(401, "Unauthorized");
@@ -45,7 +47,10 @@ export const withErrorHandler = <
         metadata.role || "user",
         permissions({
           params,
-        })
+        }).permissions,
+        permissions({
+          params,
+        }).behaviour
       );
       if (!roleValid)
         throw new HttpError(
@@ -199,9 +204,10 @@ export const applyMiddlewares = <
  * @returns Next.js 13+ App Router API route handler with error handling and models injected
  */
 const wrapWithErrorHandler = <TParams extends Record<string, unknown>>(
-  permissions: (context: {
-    params: Record<string, unknown>;
-  }) => Permissions.AllPermissions[],
+  permissions: (context: { params: Record<string, unknown> }) => {
+    behaviour: Permissions.Behaviour;
+    permissions: Permissions.AllPermissions[];
+  },
   handler: ApiHandler<TParams>
 ): ApiHandler<TParams> => {
   return withErrorHandler(
@@ -213,9 +219,10 @@ const wrapWithErrorHandler = <TParams extends Record<string, unknown>>(
 export const withMiddleware = <
   TParams extends Record<string, unknown> = Record<string, unknown>
 >(
-  permissions: (context: {
-    params: Record<string, unknown>;
-  }) => Permissions.AllPermissions[],
+  permissions: (context: { params: Record<string, unknown> }) => {
+    behaviour: Permissions.Behaviour;
+    permissions: Permissions.AllPermissions[];
+  },
   handler: ApiHandlerWithModels<TParams>
 ): ApiHandler<TParams> => {
   const withModelMiddleware = withModel<TParams>(handler);

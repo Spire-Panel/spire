@@ -1,7 +1,7 @@
 "server only";
 
 import RoleModel from "@/lib/models/Role.model";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { Permissions } from "@/lib/Roles";
 
 export const createRole = async (
@@ -35,7 +35,8 @@ export const getRole = async (role: string) => {
 export const isUserAllowed = async (
   userId: string,
   role: string,
-  permissions: Permissions.AllPermissions[]
+  permissions: Permissions.AllPermissions[],
+  behaviour: Permissions.Behaviour
 ) => {
   const user = await (await clerkClient()).users.getUser(userId);
   const roles = await getRoles();
@@ -67,9 +68,10 @@ export const isUserAllowed = async (
       if (!isRoleAboveChild) continue;
       const childRolePermissions = childRole.permissions;
       rolePermissions.push(...childRolePermissions);
-      const isUserAllowedChild = permissions.every((p) =>
-        rolePermissions.includes(p)
-      );
+      const isUserAllowedChild =
+        behaviour === Permissions.Behaviour.And
+          ? permissions.every((p) => rolePermissions.includes(p))
+          : permissions.some((p) => rolePermissions.includes(p));
       if (!isUserAllowedChild) continue;
 
       return true;
