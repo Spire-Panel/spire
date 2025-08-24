@@ -1,6 +1,12 @@
 import mongoose, { Document } from "mongoose";
+import z from "zod";
 
-export interface ISpireSettings extends Document {
+export const SpireSettingsValidator = z.object({
+  onboardingComplete: z.boolean().optional().default(false),
+  apiKey: z.string().optional(),
+});
+
+export interface ISpireSettings {
   onboardingComplete: boolean;
   apiKey: string;
 }
@@ -22,6 +28,7 @@ const SpireSettingsSchema = new mongoose.Schema<ISpireSettings>(
     versionKey: false,
   }
 );
+export type ISpireSettingsDocument = mongoose.Document & ISpireSettings;
 
 const SpireSettings =
   (mongoose.models?.SpireSettings as mongoose.Model<ISpireSettings>) ||

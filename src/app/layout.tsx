@@ -5,6 +5,7 @@ import { TanstackQueryProvider } from "@/providers/TanstackQuery";
 import { dbConnect } from "@/lib/db";
 import ClerkProvider from "@/providers/ClerkProvider";
 import { UserButton } from "@clerk/nextjs";
+import { Permissions } from "@/lib/Roles";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +28,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   await dbConnect();
+
   return (
     <html lang="en">
       <body

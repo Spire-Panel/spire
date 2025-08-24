@@ -7,7 +7,8 @@ export const NodeValidator = z.object({
   secret: z.string(),
 });
 
-export type INode = z.infer<typeof NodeValidator> & Document;
+export type INode = z.infer<typeof NodeValidator>;
+export type INodeDocument = mongoose.Document & INode;
 
 const NodeSchema = new mongoose.Schema<INode>(
   {

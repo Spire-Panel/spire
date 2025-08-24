@@ -5,26 +5,56 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "./db";
-import { Errors, HttpError } from "./api-utils";
+import { HttpError } from "./api-utils";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { ClerkClient } from "@clerk/backend";
+import { Permissions } from "./Roles";
 
-export const withErrorHandler = (handler: ApiHandler) => {
+export const withErrorHandler = (
+  handler: ApiHandler,
+  permissions: Permissions.AllPermissions[] = []
+) => {
   return async (
     request: NextRequest,
-    context: { params: Record<string, unknown> }
+    context: {
+      params: Record<string, unknown>;
+      auth: typeof auth;
+      clerk: ClerkClient;
+    }
   ) => {
     try {
-      // check auth
-      const header = request.headers.get("Authorization");
-      if (!header) throw Errors.Unauthorized("Unauthorized, no auth token");
-      const token = header.split(" ")[1];
-      if (!token) throw Errors.Unauthorized("Unauthorized, no auth token");
-      const settings = await SpireSettings.findOne({});
-      if (!settings)
-        throw Errors.Unauthorized("Unauthorized, no settings found");
-      if (settings.apiKey !== token)
-        throw Errors.Unauthorized("Unauthorized, invalid auth token");
+      const au = await auth();
+      if (!au.userId) throw new HttpError(401, "Unauthorized");
+      const clerk = await clerkClient();
+      const users = clerk.users;
+      const user = await users.getUser(au.userId);
+      if (!user) throw new HttpError(401, "Unauthorized");
+      const metadata = user.publicMetadata;
+      if (!metadata.role) {
+        await users.updateUserMetadata(au.userId, {
+          publicMetadata: {
+            role: "user",
+          },
+        });
+      }
 
-      const response = await handler(request, context);
+      const roleValid = await isUserAllowed(
+        au.userId,
+        metadata.role || "user",
+        permissions
+      );
+      if (!roleValid)
+        throw new HttpError(
+          401,
+          `Unauthorized. You do not have the required permissions to access this resource.`
+        );
+
+      const response = await handler(request, {
+        ...context,
+        clerk,
+        userId: au.userId,
+        auth,
+      });
 
       // Only process successful responses (2xx status codes)
       if (response.status >= 200 && response.status < 300) {
@@ -68,7 +98,7 @@ export const withErrorHandler = (handler: ApiHandler) => {
   };
 };
 
-export const AvailableModels = ["Node", "SpireSettings"] as const;
+export const AvailableModels = ["Node", "SpireSettings", "Role"] as const;
 export type AvailableModels = (typeof AvailableModels)[number];
 
 type ModelDictionary = {
@@ -79,6 +109,9 @@ interface ApiHandlerContext<
   TParams extends Record<string, unknown> = Record<string, unknown>
 > {
   params: TParams;
+  clerk: ClerkClient;
+  auth: typeof auth;
+  userId: string;
 }
 
 type ApiHandler<
@@ -92,7 +125,8 @@ type ApiHandlerWithModels<
   TParams extends Record<string, unknown> = Record<string, unknown>
 > = (
   request: NextRequest,
-  context: ApiHandlerContext<TParams> & { models: ModelDictionary }
+  context: ApiHandlerContext<TParams> & { models: ModelDictionary },
+  permissions?: string[]
 ) => Promise<Response> | Promise<NextResponse> | NextResponse | Response;
 
 /**
@@ -103,6 +137,8 @@ type ApiHandlerWithModels<
 // Import models to ensure they're registered with Mongoose
 import Node from "./models/Node.model";
 import SpireSettings from "./models/SpireSettings.model";
+import Role from "./models/Role.model";
+import { isUserAllowed } from "@/actions/roles.actions";
 
 export const withModel = <
   TParams extends Record<string, unknown> = Record<string, unknown>
@@ -115,6 +151,7 @@ export const withModel = <
     const models: ModelDictionary = {
       Node,
       SpireSettings,
+      Role,
     };
 
     return handler(request, {
@@ -152,19 +189,22 @@ export const applyMiddlewares = <
  * @returns Next.js 13+ App Router API route handler with error handling and models injected
  */
 const wrapWithErrorHandler = <TParams extends Record<string, unknown>>(
+  permissions: Permissions.AllPermissions[],
   handler: ApiHandler<TParams>
 ): ApiHandler<TParams> => {
   return withErrorHandler(
-    handler as ApiHandler<Record<string, unknown>>
+    handler as ApiHandler<Record<string, unknown>>,
+    permissions
   ) as ApiHandler<TParams>;
 };
 
 export const withMiddleware = <
   TParams extends Record<string, unknown> = Record<string, unknown>
 >(
+  permissions: Permissions.AllPermissions[],
   handler: ApiHandlerWithModels<TParams>
 ): ApiHandler<TParams> => {
   const withModelMiddleware = withModel<TParams>(handler);
 
-  return wrapWithErrorHandler<TParams>(withModelMiddleware);
+  return wrapWithErrorHandler(permissions, withModelMiddleware);
 };

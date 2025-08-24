@@ -12,15 +12,17 @@ import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useTestNodeConnection } from "@/hooks/useTestNodeConnection";
 import { useTestNodeSecret } from "@/hooks/useTestNodeSecret";
-import {
-  completeOnboarding,
-  createNode,
-  setApiKey,
-} from "@/actions/db.actions";
+import { createNode, setApiKey, updateSettings } from "@/actions/db.actions";
 import { useRouter } from "next/navigation";
 import type { INode } from "@/lib/models/Node.model";
 import { ActionsError } from "@/actions/utils";
 import { v4 } from "uuid";
+import { useSettingsMutation } from "@/hooks/useSettingsMutation";
+import { useCreateNodeMutation } from "@/hooks/useCreateNodeMutation";
+import { updateRole } from "@/actions/clerk.actions";
+import { useAuth } from "@clerk/nextjs";
+import { createRole } from "@/actions/roles.actions";
+import { Permissions } from "@/lib/Roles";
 
 type OnboardingFormData = {
   nodeConnectionUrl: string;
@@ -56,6 +58,7 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
   const [apiErrors, setApiErrors] = useState<ActionsError[]>([]);
+  const [miscErrors, setMiscErrors] = useState<string[]>([]);
   const [generatedApiKey, setGeneratedApiKey] = useState("");
 
   const {
@@ -209,6 +212,14 @@ export default function OnboardingPage() {
   const totalSteps = onboardingSteps.length;
   const currentFields = onboardingSteps[currentStep]?.fields || [];
   const router = useRouter();
+  const settingsMutation = useSettingsMutation();
+  const createNodeMutation = useCreateNodeMutation();
+  const { userId } = useAuth();
+
+  useEffect(() => {
+    if (!userId) return;
+    updateRole(userId, "admin");
+  }, [userId]);
 
   const nextStep = async () => {
     // Validate current step before proceeding
@@ -244,29 +255,32 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     try {
       // Here you would typically send the data to your API
-      await completeOnboarding()
-        .then(async () => {
-          try {
-            await createNode({
-              name: data.nodeName,
-              connectionUrl: data.nodeConnectionUrl,
-              secret: data.nodeSecret,
-            } as INode);
-            await setApiKey(generatedApiKey);
 
-            setApiErrors([]);
-
-            router.push("/dashboard");
-          } catch (error) {
-            console.error("Error creating node:", error);
-            if (error instanceof ActionsError) {
-              setApiErrors((prev) => [...prev, error]);
-            }
-          }
-        })
-        .catch((error) => {
-          console.error("Error submitting form:", error);
+      try {
+        await updateSettings({
+          onboardingComplete: true,
+          apiKey: generatedApiKey,
         });
+
+        await createNode(
+          data.nodeConnectionUrl,
+          data.nodeName,
+          data.nodeSecret
+        );
+
+        await createRole("user", 0, [Permissions.Profile.Self]);
+        await createRole("admin", 1, ["*"]);
+
+        router.push("/dashboard");
+      } catch (error) {
+        console.error("Error creating node:", error);
+        setIsSubmitting(false);
+        if (error instanceof ActionsError) {
+          setApiErrors((prev) => [...prev, error]);
+        } else if (error instanceof Error) {
+          setMiscErrors((prev) => [...prev, error.message]);
+        }
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
@@ -313,6 +327,13 @@ export default function OnboardingPage() {
                     <div className="text-destructive flex flex-col gap-1">
                       {apiErrors.map((error) => (
                         <div key={error.message}>{error.message}</div>
+                      ))}
+                    </div>
+                  )}
+                  {miscErrors?.length > 0 && (
+                    <div className="text-destructive flex flex-col gap-1">
+                      {miscErrors.map((error) => (
+                        <div key={error}>{error}</div>
                       ))}
                     </div>
                   )}

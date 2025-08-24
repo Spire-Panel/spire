@@ -20,6 +20,7 @@ if (!cached) {
 }
 
 import "./models/User.model";
+import { Permissions } from "./Roles";
 export async function dbConnect() {
   if (cached.conn) {
     return cached.conn;

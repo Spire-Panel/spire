@@ -1,8 +1,10 @@
 import { Errors, Responses } from "@/lib/api-utils";
 import { withMiddleware } from "@/lib/middlewares";
 import { isValidObjectId } from "mongoose";
+import { Permissions } from "@/lib/Roles";
 
 export const GET = withMiddleware<{ id: string }>(
+  [Permissions.Nodes.Read],
   async (req, { models, params }) => {
     if (!isValidObjectId(params.id)) throw Errors.BadRequest("Invalid node id");
     const node = await models.Node.findById(params.id).select("-secret");

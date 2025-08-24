@@ -1,12 +1,13 @@
 "use server";
 import SpireSettings, {
   ISpireSettings,
+  ISpireSettingsDocument,
 } from "@/lib/models/SpireSettings.model";
 import Node, { INode, NodeValidator } from "@/lib/models/Node.model";
 import { ActionsError } from "./utils";
 import { ZodErrorFormatter } from "@/lib/utils";
 
-export async function getSettings(): Promise<ISpireSettings> {
+export async function getSettings(): Promise<ISpireSettingsDocument> {
   const exists = await SpireSettings.findOne({});
   if (exists) return exists;
   const settings = await SpireSettings.create({ onboardingComplete: false });
@@ -14,9 +15,11 @@ export async function getSettings(): Promise<ISpireSettings> {
   return settings;
 }
 
-export async function completeOnboarding() {
+export async function updateSettings(settingsData: Partial<ISpireSettings>) {
   const settings = await getSettings();
-  settings.onboardingComplete = true;
+  settings.onboardingComplete =
+    settingsData.onboardingComplete || !!settings.onboardingComplete;
+  settings.apiKey = settingsData.apiKey || settings.apiKey;
   await settings.save();
 }
 
@@ -26,8 +29,16 @@ export async function setApiKey(key: string) {
   await settings.save();
 }
 
-export async function createNode(nodeData: INode) {
-  const validatedNode = NodeValidator.safeParse(nodeData);
+export async function createNode(
+  connectionUrl: string,
+  name: string,
+  secret: string
+) {
+  const validatedNode = NodeValidator.safeParse({
+    connectionUrl,
+    name,
+    secret,
+  });
 
   if (!validatedNode.success) {
     throw new ActionsError(
