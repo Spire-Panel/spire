@@ -42,15 +42,14 @@ export const withErrorHandler = <
         });
       }
 
+      const perms = permissions({
+        params,
+      });
       const roleValid = await isUserAllowed(
         au.userId,
         metadata.role || "user",
-        permissions({
-          params,
-        }).permissions,
-        permissions({
-          params,
-        }).behaviour
+        perms.permissions,
+        perms.behaviour
       );
       if (!roleValid)
         throw new HttpError(
@@ -61,6 +60,8 @@ export const withErrorHandler = <
       const response = await handler(request, {
         ...context,
         params,
+        clerk,
+        auth,
         userId: au.userId,
       });
 

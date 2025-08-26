@@ -1,5 +1,7 @@
 import mongoose, { Document } from "mongoose";
 import { z } from "zod";
+import { objectIdSchema } from "../utils";
+import { INode } from "./Node.model";
 
 export const ServerValidator = z.object({
   name: z.string(),
@@ -9,9 +11,29 @@ export const ServerValidator = z.object({
   memory: z.string(),
   modpackId: z.string().or(z.number()).optional(),
   _id: z.string(),
+  node: objectIdSchema,
+  userIds: z.array(z.string()),
 });
 
-export type IServer = z.infer<typeof ServerValidator> & Document;
+export const CreateServerValidator = ServerValidator.omit({
+  _id: true,
+  node: true,
+  userIds: true,
+});
+
+export type IServer = {
+  node: INode;
+  userIds: string[];
+  name: string;
+  version: string;
+  type: string;
+  port: number;
+  memory: string;
+  modpackId: string | number;
+  _id: string;
+  createdAt: Date;
+  updatedAt: Date;
+} & Document;
 
 const ServerSchema = new mongoose.Schema<IServer>(
   {
@@ -41,6 +63,15 @@ const ServerSchema = new mongoose.Schema<IServer>(
     },
     _id: {
       type: String,
+      required: true,
+    },
+    node: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Node",
+      required: true,
+    },
+    userIds: {
+      type: [String],
       required: true,
     },
   },

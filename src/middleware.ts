@@ -37,6 +37,7 @@ export default clerkMiddleware(async (auth, req) => {
 // ✅ Only run middleware for non-API, non-static routes
 export const config = {
   matcher: [
+    // update middleware to not include file extensions after /files route
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:css|js|json|jpg|jpeg|png|gif|svg|ico|woff|woff2|ttf|eot|txt|xml|csv|docx?|xlsx?|zip|webmanifest)).*)",
   ],
 };

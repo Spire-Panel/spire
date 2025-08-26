@@ -6,6 +6,12 @@ export const NodeValidator = z.object({
   connectionUrl: z.string(),
   secret: z.string(),
   portAllocations: z.array(z.number()).optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  _id: z
+    .string()
+    .optional()
+    .default(() => new mongoose.Types.ObjectId().toHexString()),
 });
 
 export type INode = z.infer<typeof NodeValidator>;

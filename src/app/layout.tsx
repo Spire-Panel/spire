@@ -6,6 +6,7 @@ import { dbConnect } from "@/lib/db";
 import ClerkProvider from "@/providers/ClerkProvider";
 import { UserButton } from "@clerk/nextjs";
 import { Permissions } from "@/lib/Roles";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,11 +35,9 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Toaster position="top-right" theme="dark" />
         <TanstackQueryProvider>
-          <ClerkProvider>
-            <UserButton />
-            {children}
-          </ClerkProvider>
+          <ClerkProvider>{children}</ClerkProvider>
         </TanstackQueryProvider>
       </body>
     </html>

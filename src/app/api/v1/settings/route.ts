@@ -5,7 +5,10 @@ import { ZodErrorFormatter } from "@/lib/utils";
 import { Permissions } from "@/lib/Roles";
 
 export const GET = withMiddleware(
-  [Permissions.Settings.Read],
+  () => ({
+    behaviour: Permissions.Behaviour.Or,
+    permissions: [Permissions.Settings.Read],
+  }),
   async (request, { models }) => {
     const settings = await models.SpireSettings.findOne({});
 
@@ -18,7 +21,10 @@ export const GET = withMiddleware(
 );
 
 export const PUT = withMiddleware(
-  [Permissions.Settings.Write],
+  () => ({
+    behaviour: Permissions.Behaviour.Or,
+    permissions: [Permissions.Settings.Write],
+  }),
   async (request, { models }) => {
     const settings = await models.SpireSettings.findOne({});
 

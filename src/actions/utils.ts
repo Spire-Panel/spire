@@ -1,4 +1,5 @@
 import { INode } from "@/lib/models/Node.model";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export class ActionsError extends Error {
   constructor(message: string, public details?: Record<string, any>) {
@@ -26,7 +27,7 @@ export const checkNewNode = async (nodeData: INode) => {
       Authorization: `Bearer ${nodeData.secret}`,
     },
   }).catch(() => ({ ok: false }));
-  if (!secretCheck.ok) throw new ActionsError("Node is not authorized");
+  if (!secretCheck.ok) throw new ActionsError("Invalid node secret");
 
   return true;
 };

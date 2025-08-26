@@ -1,11 +1,13 @@
 import { z } from "zod";
 import mongoose, { Document } from "mongoose";
 import { Permissions } from "@/lib/Roles";
+import { objectIdSchema } from "../utils";
 
 export const RoleValidator = z.object({
   name: z.string(),
   permissions: z.array(z.enum(Permissions.allPermissions())),
   order: z.number().default(0),
+  _id: objectIdSchema,
   inheritChildren: z.boolean().default(false),
 });
 

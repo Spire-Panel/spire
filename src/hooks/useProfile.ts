@@ -8,7 +8,9 @@ import { Permissions } from "@/lib/Roles";
 const buildHasPermission =
   (...userPermissions: Permissions.AllPermissions[]) =>
   (permission: Permissions.AllPermissions | Permissions.AllPermissions[]) => {
-    if (userPermissions.includes("*")) return true;
+    if (userPermissions.includes("*")) {
+      return true;
+    }
     const permissionsToCheck = Array.isArray(permission)
       ? permission
       : [permission];
@@ -25,7 +27,7 @@ export const useProfile = () => {
     },
     select: (data) => ({
       profile: data,
-      hasPermission: buildHasPermission(...data.permissions),
+      hasPermission: buildHasPermission(...(data?.permissions || [])),
     }),
   });
 };

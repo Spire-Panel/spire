@@ -101,16 +101,22 @@ export async function paginate<TData = unknown>(
 export const Fetch = async <TData>(url: string, options?: RequestInit) => {
   try {
     const res = await fetch(url, options);
-    if (!res.ok) throw new Error("Failed to fetch data");
+    if (!res.ok)
+      return {
+        success: false,
+        error: res.statusText,
+      };
 
     const body = await res.json();
 
-    if (!!body.success) return body as APIResponse<TData>;
-
-    throw new Error(body.error);
+    return body as APIResponse<TData>;
   } catch (error) {
     console.error("Error fetching data:", error);
-    throw error;
+    return {
+      success: false,
+      data: null,
+      error: error instanceof Error ? error.message : "An error occurred",
+    };
   }
 };
 

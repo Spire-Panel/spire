@@ -1,4 +1,4 @@
-"server only";
+"use server";
 
 import RoleModel from "@/lib/models/Role.model";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -56,7 +56,10 @@ export const isUserAllowed = async (
   if (rolePermissions.includes("*")) return true;
 
   // make sure that all permissions in the array are met
-  const isUserAllowed = permissions.every((p) => rolePermissions.includes(p));
+  const isUserAllowed =
+    behaviour === Permissions.Behaviour.And
+      ? permissions.every((p) => rolePermissions.includes(p))
+      : permissions.some((p) => rolePermissions.includes(p));
 
   if (!!roleExists.inheritChildren) {
     const childRoles = await getRoles();
@@ -113,5 +116,18 @@ export const getUserPermissions = async (userId: string) => {
     }
   }
 
-  return [...new Set(roles.flatMap((r) => r.permissions))];
+  const allPermissions = roles.flatMap((r) => r.permissions);
+  if (allPermissions.includes("*") && userClerkRole !== "admin") {
+    return [...new Set(allPermissions.filter((p) => p !== "*"))];
+  }
+
+  return [...new Set(allPermissions)];
+};
+
+export const userHasPermissions = async (
+  userId: string,
+  ...permissions: Permissions.AllPermissions[]
+) => {
+  const userPermissions = await getUserPermissions(userId);
+  return permissions.every((p) => userPermissions.includes(p));
 };

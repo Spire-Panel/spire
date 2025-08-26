@@ -26,6 +26,15 @@ export namespace Permissions {
     Write = "servers:write",
     Self = "servers:self",
     Create = "servers:create",
+    Start = "servers:start",
+    Stop = "servers:stop",
+    Restart = "servers:restart",
+    Delete = "servers:delete",
+    Files = "servers:files",
+    FilesRead = "servers:files:read",
+    FilesWrite = "servers:files:write",
+    FilesDelete = "servers:files:delete",
+    FilesCreate = "servers:files:create",
   }
 
   export enum Settings {
@@ -45,6 +54,11 @@ export namespace Permissions {
     Write = "profile:write",
   }
 
+  export enum Users {
+    Read = "users:read",
+    Write = "users:write",
+  }
+
   export const allPermissions = () => {
     return [
       "*",
@@ -52,6 +66,7 @@ export namespace Permissions {
       ...Object.values(Permissions.Servers),
       ...Object.values(Permissions.Settings),
       ...Object.values(Permissions.Roles),
+      ...Object.values(Permissions.Users),
       ...Object.values(Permissions.Profile),
     ];
   };
@@ -62,8 +77,10 @@ export namespace Permissions {
     | Settings
     | Roles
     | Profile
+    | Users
     | `${Without<Servers, Servers.Self>}:${string}`
     | `${Without<Nodes, Nodes.Manage>}:${string}`
+    | `${Users}:${string}`
     | "*";
 }
 
