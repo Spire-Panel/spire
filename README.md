@@ -1,253 +1,3 @@
-<!-- Dark mode styling -->
-<style>
-  .markdown-body {
-    color: #e1e4e8;
-    background-color: #0d1117;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.6;
-  }
-  
-  .markdown-body h1, 
-  .markdown-body h2, 
-  .markdown-body h3, 
-  .markdown-body h4, 
-  .markdown-body h5, 
-  .markdown-body h6 {
-    color: #58a6ff;
-    margin-top: 1.5em;
-    margin-bottom: 0.5em;
-  }
-  
-  .markdown-body h1 {
-    font-size: 2.5em;
-    border-bottom: 1px solid #30363d;
-    padding-bottom: 0.3em;
-  }
-  
-  .markdown-body h2 {
-    font-size: 2em;
-    border-bottom: 1px solid #30363d;
-    padding-bottom: 0.3em;
-  }
-  
-  .markdown-body a {
-    color: #58a6ff;
-    text-decoration: none;
-  }
-  
-  .markdown-body a:hover {
-    text-decoration: underline;
-  }
-  
-  .markdown-body pre {
-    background-color: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    padding: 1em;
-    overflow-x: auto;
-  }
-  
-  .markdown-body code {
-    color: #8b949e;
-    background-color: rgba(110, 118, 129, 0.4);
-    border-radius: 3px;
-    padding: 0.2em 0.4em;
-    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-    font-size: 85%;
-  }
-  
-  .markdown-body pre code {
-    background-color: transparent;
-    padding: 0;
-    color: #e1e4e8;
-  }
-  
-  .markdown-body table {
-    border: 1px solid #30363d;
-    border-collapse: collapse;
-    width: 100%;
-    margin: 1em 0;
-  }
-  
-  .markdown-body th, 
-  .markdown-body td {
-    border: 1px solid #30363d;
-    padding: 0.5em 1em;
-  }
-  
-  .markdown-body th {
-    background-color: #161b22;
-    text-align: left;
-  }
-  
-  .markdown-body tr {
-    background-color: #0d1117;
-    border-top: 1px solid #21262d;
-  }
-  
-  .markdown-body tr:nth-child(2n) {
-    background-color: #161b22;
-  }
-  
-  .markdown-body blockquote {
-    border-left: 4px solid #30363d;
-    color: #8b949e;
-    margin: 1em 0;
-    padding: 0 1em;
-  }
-  
-  .markdown-body img {
-    max-width: 100%;
-    height: auto;
-  }
-  
-  .header-badges {
-    margin: 20px 0;
-  }
-  
-  .header-badges img {
-    margin: 0 5px;
-    height: 28px;
-  }
-  
-  .feature-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin: 2rem 0;
-  }
-  
-  .feature-card {
-    background-color: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    padding: 1.5rem;
-  }
-  
-  .feature-card h3 {
-    margin-top: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .feature-card ul {
-    margin: 0.5rem 0 0 0;
-    padding-left: 1.5rem;
-  }
-  
-  .tech-stack {
-    background-color: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    padding: 1.5rem;
-    margin: 2rem 0;
-  }
-  
-  .tech-stack h3 {
-    margin-top: 0;
-  }
-  
-  .tech-stack-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-  
-  .tech-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background-color: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 4px;
-  }
-  
-  .tech-item img {
-    width: 24px;
-    height: 24px;
-  }
-  
-  .footer {
-    margin-top: 4rem;
-    padding-top: 2rem;
-    border-top: 1px solid #30363d;
-    text-align: center;
-    color: #8b949e;
-  }
-  
-  .footer-links {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    margin-top: 1rem;
-  }
-  
-  .footer-links a {
-    color: #58a6ff;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .footer-links a:hover {
-    text-decoration: underline;
-  }
-  
-  .command {
-    background-color: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    padding: 1rem;
-    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-    margin: 1rem 0;
-    position: relative;
-  }
-  
-  .command:before {
-    content: "$";
-    color: #58a6ff;
-    margin-right: 0.5rem;
-  }
-  
-  .note {
-    background-color: rgba(88, 166, 255, 0.1);
-    border-left: 4px solid #58a6ff;
-    padding: 1rem;
-    margin: 1.5rem 0;
-    border-radius: 0 6px 6px 0;
-  }
-  
-  .note p:first-child {
-    margin-top: 0;
-  }
-  
-  .note p:last-child {
-    margin-bottom: 0;
-  }
-  
-  .warning {
-    background-color: rgba(248, 81, 73, 0.1);
-    border-left: 4px solid #f85149;
-    padding: 1rem;
-    margin: 1.5rem 0;
-    border-radius: 0 6px 6px 0;
-  }
-  
-  .warning p:first-child {
-    margin-top: 0;
-  }
-  
-  .warning p:last-child {
-    margin-bottom: 0;
-  }
-</style>
-
 <div align="center">
   <img src="public/assets/logo.png" alt="Spire Logo" width="200" style="border-radius: 50%; box-shadow: 0 0 20px rgba(88, 166, 255, 0.5);"/>
   <h1>Spire</h1>
@@ -342,47 +92,29 @@ graph TD
 
 ## 🛠️ Technical Stack
 
-<div class="tech-stack">
-  <h3>Frontend</h3>
-  <div class="tech-stack-grid">
-    <div class="tech-item">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nextjs/nextjs-original.svg" alt="Next.js" />
-      <span>Next.js 14</span>
-    </div>
-    <div class="tech-item">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" alt="React" />
-      <span>React 19</span>
-    </div>
-    <div class="tech-item">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" alt="TypeScript" />
-      <span>TypeScript</span>
-    </div>
-    <div class="tech-item">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/tailwindcss/tailwindcss-plain.svg" alt="Tailwind" />
-      <span>Tailwind CSS</span>
-    </div>
-  </div>
-  
-  <h3 style="margin-top: 2rem;">Backend</h3>
-  <div class="tech-stack-grid">
-    <div class="tech-item">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" alt="Node.js" />
-      <span>Node.js 18+</span>
-    </div>
-    <div class="tech-item">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" alt="MongoDB" />
-      <span>MongoDB</span>
-    </div>
-    <div class="tech-item">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker" />
-      <span>Docker</span>
-    </div>
-    <div class="tech-item">
-      <img src="https://clerk.com/favicons/favicon-32x32.png" alt="Clerk" />
-      <span>Clerk Auth</span>
-    </div>
-  </div>
-</div>
+### Frontend
+
+- **Framework**: [Next.js 14](https://nextjs.org/) with App Router
+- **UI**: [Radix UI](https://www.radix-ui.com/) + [Tailwind CSS](https://tailwindcss.com/)
+- **State Management**: [React Query](https://tanstack.com/query)
+- **Forms**: [React Hook Form](https://react-hook-form.com/) with [Zod](https://zod.dev/) validation
+- **Charts**: [Recharts](https://recharts.org/)
+- **Icons**: [Lucide Icons](https://lucide.dev/)
+
+### Backend
+
+- **Runtime**: [Node.js 18+](https://nodejs.org/)
+- **API**: [Next.js API Routes](https://nextjs.org/docs/api-routes/introduction)
+- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/) ODM
+- **Authentication**: [Clerk](https://clerk.com/)
+- **Real-time**: [Socket.IO](https://socket.io/)
+
+### Infrastructure
+
+- **Containerization**: [Docker](https://www.docker.com/)
+- **Orchestration**: [Glide Daemon](https://github.com/your-org/glide)
+- **CI/CD**: [GitHub Actions](https://github.com/features/actions)
+- **Hosting**: [Vercel](https://vercel.com/) (Frontend), [Railway](https://railway.app/)/[MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (Backend)
 
 ## 🚀 Getting Started
 
