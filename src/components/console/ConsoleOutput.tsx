@@ -18,16 +18,36 @@ const getLogLevel = (line: string) => {
 
 export function ConsoleOutput({ logs, className }: ConsoleOutputProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   useEffect(() => {
+    if (isAtBottom && containerRef.current) {
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [logs, isAtBottom]);
+
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const atBottom =
+      Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) < 5;
+
+    setIsAtBottom(atBottom);
+  };
+
+  const scrollToBottom = () => {
     if (containerRef.current) {
       containerRef.current.scrollTo({
         top: containerRef.current.scrollHeight,
         behavior: "smooth",
       });
     }
-  }, [logs]);
-
+    setIsAtBottom(true);
+  };
   const cleanLine = (line: string): string => {
     // This includes control characters (0-31), DEL (127), and any other non-printable chars
     let cleaned = line.replace(/[^\x20-\x7E\n\t]/g, "");
@@ -124,6 +144,19 @@ export function ConsoleOutput({ logs, className }: ConsoleOutputProps) {
         className
       )}
     >
+      {!isAtBottom && (
+        <div className="absolute bottom-4 right-4 z-10">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={scrollToBottom}
+            className="flex items-center gap-1 bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-colors"
+          >
+            <ChevronDown className="h-4 w-4" />
+            Scroll to Bottom
+          </Button>
+        </div>
+      )}
       {logs.length === 0 ? (
         <div className="text-muted-foreground text-sm p-2">
           No logs available
@@ -131,6 +164,7 @@ export function ConsoleOutput({ logs, className }: ConsoleOutputProps) {
       ) : (
         <div
           ref={containerRef}
+          onScroll={handleScroll}
           className="font-mono text-sm overflow-y-auto max-h-full"
         >
           {logs

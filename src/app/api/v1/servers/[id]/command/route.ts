@@ -3,6 +3,7 @@ import { Permissions } from "@/lib/Roles";
 import { withMiddleware } from "@/lib/middlewares";
 import { IServer } from "@/lib/models/Server.model";
 import mongoose from "mongoose";
+import { GlideTypes } from "@/types/api";
 
 export const POST = withMiddleware(
   ({ params }) => ({
@@ -34,7 +35,7 @@ export const POST = withMiddleware(
         success,
         error,
         data: resData,
-      } = (await res.json()) as APIResponse<string>;
+      } = (await res.json()) as APIResponse<GlideTypes.ContainerCommandResponse>;
       if (!success) throw Errors.BadRequest(error);
       if (!resData) throw Errors.BadRequest("Failed to execute command");
       return Responses.Success(resData);
