@@ -2,11 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQuery } from "@tanstack/react-query";
 import { IServer } from "@/lib/models/Server.model";
+import { APITypes } from "@/types/api";
 
 const MAX_RETRIES = 5;
 const RETRY_DELAY = 3000; // 3 seconds
 
-export const useServerLogs = (server?: IServer) => {
+export const useServerLogs = (server?: APITypes.Server) => {
   const [liveLogs, setLiveLogs] = useState<string[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -29,7 +30,7 @@ export const useServerLogs = (server?: IServer) => {
         return [];
       }
     },
-    enabled: !!server && isConnected,
+    enabled: !!server && isConnected && server.status?.running,
     refetchOnWindowFocus: false,
   });
 
@@ -179,11 +180,16 @@ export const useServerLogs = (server?: IServer) => {
     }
   }, [socket]);
 
+  const setLogs = (logs: string[]) => {
+    setLiveLogs((prev) => [...prev, ...logs]);
+  };
+
   return {
     logs: combinedLogs(),
     isLoading: !pastLogs && !isConnected,
     isConnected,
     reconnect,
     socket,
+    setLogs,
   };
 };

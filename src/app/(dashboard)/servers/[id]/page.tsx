@@ -3,16 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Server,
-  Terminal,
-  HardDrive,
-  Settings,
-  Play,
-  StopCircle,
-  RotateCw,
-  FolderOpen,
-} from "lucide-react";
+import { Server } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -27,28 +18,50 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useServer } from "@/hooks/useServers";
 import { useProfile } from "@/hooks/useProfile";
-import { useServerLogs } from "@/hooks/useServerLogs";
-import { useNode } from "@/hooks/useNodes";
+import { useMutation } from "@tanstack/react-query";
 import { IServer } from "@/lib/models/Server.model";
-import {
-  useStopMutation,
-  useRestartMutation,
-  useStartMutation,
-} from "@/hooks/useStatusMutation";
 import { toast } from "sonner";
 import { ConsoleOutput } from "@/components/console/ConsoleOutput";
 import { FileExplorer } from "@/components/files/FileExplorer";
+import { ResourceUsageCharts } from "@/components/server/ResourceUsageCharts";
+import { APITypes, DockerTypes } from "@/types/api";
+import {
+  Cpu,
+  MemoryStick,
+  HardDrive as HardDriveIcon,
+  Server as ServerIcon,
+  Terminal,
+  Play,
+  StopCircle,
+  RotateCw,
+  FolderOpen,
+  Settings,
+} from "lucide-react";
+import {
+  useRestartMutation,
+  useStartMutation,
+  useStopMutation,
+} from "@/hooks/useStatusMutation";
+import { useSendCommand } from "@/hooks/useServers";
+import { useServerLogs } from "@/hooks/useServerLogs";
 
-// Mock data - will be replaced with real data
-const mockStats = {
-  cpu: 35,
-  memory: 65,
-  storage: 42,
-  status: "online" as const,
-  players: {
-    online: 3,
-    max: 20,
-  },
+// Helper function to format bytes
+const formatBytes = (bytes: number, decimals = 2): string => {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+};
+
+// Helper function to calculate CPU usage percentage
+const calculateCpuUsage = (cpu: DockerTypes.CPUStats): number => {
+  if (!cpu?.cpu_usage?.total_usage || !cpu.system_cpu_usage) return 0;
+  return Math.min(
+    100,
+    Math.max(0, (cpu.cpu_usage.total_usage / cpu.system_cpu_usage) * 10000)
+  );
 };
 
 export default function ServerPage() {
@@ -58,25 +71,74 @@ export default function ServerPage() {
   const [command, setCommand] = useState("");
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resourceHistory, setResourceHistory] = useState<
+    Array<{
+      timestamp: Date;
+      cpu: number;
+      memory: number;
+    }>
+  >([]);
 
-  const { data: server, isLoading } = useServer(id as string);
+  const { data: server, isLoading } = useServer(id as string, {
+    refetch: true,
+    refetchInterval: 3000,
+  });
+
+  const { mutateAsync: sendCommand, isPending: isSendingCommand } =
+    useSendCommand(id as string);
+  const { mutateAsync: restart, isPending: isRestarting } =
+    useRestartMutation();
+  const { mutateAsync: start, isPending: isStarting } = useStartMutation();
+  const { mutateAsync: stop, isPending: isStopping } = useStopMutation();
+
+  // Update resource history when server status changes
+  useEffect(() => {
+    if (
+      server?.status?.cpu?.cpu_usage?.total_usage &&
+      server?.status?.memory?.usage
+    ) {
+      setResourceHistory((prev) => {
+        const cpuUsage = calculateCpuUsage(server.status.cpu);
+        const newHistory = [
+          ...prev,
+          {
+            timestamp: new Date(),
+            cpu: cpuUsage,
+            memory: server.status.memory.usage,
+          },
+        ];
+
+        // Keep only the last 60 data points (3 minutes of data at 3s intervals)
+        return newHistory.slice(-60);
+      });
+    }
+  }, [server?.status]);
+
   const { data: profile } = useProfile();
-  const { mutateAsync: restart } = useRestartMutation();
-  const { mutateAsync: start } = useStartMutation();
-  const { mutateAsync: stop } = useStopMutation();
-  const { logs, isConnected, reconnect } = useServerLogs(server as IServer);
+  const { logs, isConnected, reconnect, setLogs } = useServerLogs(
+    server as APITypes.Server
+  );
 
-  const handleCommandSubmit = (e: React.FormEvent) => {
+  const handleCommandSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!command.trim()) return;
+    if (!command.trim() || isSendingCommand) return;
 
-    // In a real implementation, this would send the command to the server
-    setConsoleOutput((prev) => [
-      ...prev,
-      `> ${command}`,
-      "Command executed successfully",
-    ]);
+    const commandLine = `> ${command}`;
+    setLogs([commandLine]);
     setCommand("");
+
+    try {
+      const response = await sendCommand(command);
+
+      if (response && response.length > 0) {
+        setLogs(response);
+      }
+    } catch (error) {
+      console.error("Error sending command:", error);
+      setLogs([
+        "Error: Failed to execute command. Make sure the server is running and you have permission.",
+      ]);
+    }
   };
 
   if (isLoading) {
@@ -183,95 +245,125 @@ export default function ServerPage() {
   return (
     <div className="space-y-6">
       {/* Server Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{server.name}</h1>
             <Badge variant={server.status.running ? "default" : "destructive"}>
               {server.status.running ? "Online" : "Offline"}
             </Badge>
           </div>
-          <p className="text-muted-foreground">
-            {server.type} {server.version} • {mockStats.players.online}/
-            {mockStats.players.max} players
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/servers/${id}/settings`)}
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
-          {server.status.running ? (
-            <Button variant="destructive" size="sm" onClick={stopServer}>
-              <StopCircle className="h-4 w-4 mr-2" />
-              Stop
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startServer}
+              disabled={isSubmitting || server?.status?.running}
+            >
+              <Play className="h-4 w-4 mr-2" /> Start
             </Button>
-          ) : (
-            <Button size="sm" onClick={startServer}>
-              <Play className="h-4 w-4 mr-2" />
-              Start
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={stopServer}
+              disabled={isSubmitting || server?.status?.status !== "RUNNING"}
+            >
+              <StopCircle className="h-4 w-4 mr-2" /> Stop
             </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={restartServer}>
-            <RotateCw className="h-4 w-4 mr-2" />
-            Restart
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={restartServer}
+              disabled={isSubmitting || server?.status?.status !== "RUNNING"}
+            >
+              <RotateCw className="h-4 w-4 mr-2" /> Restart
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockStats.cpu}%</div>
-            <Progress value={mockStats.cpu} className="h-2 mt-2" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockStats.memory}%</div>
-            <Progress value={mockStats.memory} className="h-2 mt-2" />
-            <div className="text-xs text-muted-foreground mt-1">
-              {Math.round((mockStats.memory / 100) * 8192)} MB / 8192 MB
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Storage Usage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockStats.storage}%</div>
-            <Progress value={mockStats.storage} className="h-2 mt-2" />
-            <div className="text-xs text-muted-foreground mt-1">
-              42 GB / 100 GB used
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Status Grid */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Status</CardTitle>
+              <ServerIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {server.status.running ? "Online" : "Offline"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {server.status.running
+                  ? "Server is online"
+                  : "Server is offline"}
+              </p>
+            </CardContent>
+          </Card>
 
-      {/* Tabs */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="space-y-4"
-      >
+          {/* CPU Usage Card */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
+              <Cpu className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {server?.status?.cpu && server.status.running
+                  ? `${calculateCpuUsage(server.status.cpu).toFixed(1)}%`
+                  : "N/A"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {server?.status?.cpu?.online_cpus || server.status.running
+                  ? "?"
+                  : "Server is offline"}{" "}
+                {server?.status?.running && "cores"}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Memory Usage Card */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Memory Usage
+              </CardTitle>
+              <MemoryStick className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {server?.status?.memory && server.status.running
+                  ? formatBytes(server.status.memory.usage)
+                  : "N/A"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {server?.status?.memory && server.status.running
+                  ? `of ${formatBytes(server.status.memory.limit)}`
+                  : "Server is offline"}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Resource Usage Charts */}
+        {server?.status?.running && resourceHistory.length > 0 && (
+          <div className="mt-6">
+            <ResourceUsageCharts
+              status={{
+                cpu: server.status.cpu,
+                memory: server.status.memory,
+              }}
+              history={resourceHistory}
+            />
+          </div>
+        )}
+      </div>
+      <Tabs defaultValue="console" className="space-y-4">
         <TabsList>
           <TabsTrigger value="console" className="flex items-center gap-2">
             <Terminal className="h-4 w-4" /> Console
           </TabsTrigger>
           <TabsTrigger value="files" className="flex items-center gap-2">
-            <HardDrive className="h-4 w-4" /> Files
+            <HardDriveIcon className="h-4 w-4" /> Files
           </TabsTrigger>
           <TabsTrigger value="backups" className="flex items-center gap-2">
             <FolderOpen className="h-4 w-4" /> Backups

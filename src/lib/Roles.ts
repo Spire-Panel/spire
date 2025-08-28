@@ -35,6 +35,7 @@ export namespace Permissions {
     FilesWrite = "servers:files:write",
     FilesDelete = "servers:files:delete",
     FilesCreate = "servers:files:create",
+    Rcon = "servers:rcon",
   }
 
   export enum Settings {

@@ -33,3 +33,35 @@ export const GET = withMiddleware<{ id: string }>(
     });
   }
 );
+
+export const DELETE = withMiddleware<{ id: string }>(
+  ({ params }) => ({
+    behaviour: Permissions.Behaviour.Or,
+    permissions: [Permissions.Servers.Delete, `servers:delete:${params.id}`],
+  }),
+  async (req, { models, params }) => {
+    const server = await models.Server.findById(params.id).populate("node");
+    if (!server) throw Errors.NotFound("Server not found");
+
+    const res = await fetch(
+      `${server.node.connectionUrl}/containers/${server._id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${server.node.secret}`,
+        },
+      }
+    );
+    const {
+      success,
+      error,
+      data: resData,
+    } = (await res.json()) as APIResponse<GlideTypes.ContainerStatus>;
+    if (!success) throw Errors.BadRequest(error);
+    if (!resData) throw Errors.BadRequest("Failed to delete server");
+
+    await models.Server.findByIdAndDelete(params.id);
+
+    return Responses.Success(resData);
+  }
+);

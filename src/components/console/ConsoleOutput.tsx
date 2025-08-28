@@ -1,4 +1,7 @@
 import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 
 interface ConsoleOutputProps {
   logs: string[];
@@ -14,10 +17,39 @@ const getLogLevel = (line: string) => {
 };
 
 export function ConsoleOutput({ logs, className }: ConsoleOutputProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [logs]);
+
+  const cleanLine = (line: string): string => {
+    // This includes control characters (0-31), DEL (127), and any other non-printable chars
+    let cleaned = line.replace(/[^\x20-\x7E\n\t]/g, "");
+
+    // Remove any remaining ANSI escape sequences
+    cleaned = cleaned.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+
+    // Remove any remaining control characters that might have been missed
+    cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+
+    // Trim whitespace but preserve empty lines
+    return cleaned.trim() === "" && line.trim() !== "" ? "" : cleaned.trim();
+  };
+
   const formatLine = (line: string) => {
     // Handle ANSI color codes if present
     const ansiRegex = /\x1b\[([0-9;]*)m/g;
-    let formattedLine = line.replace(ansiRegex, (match, code) => {
+    let formattedLine = cleanLine(line);
+    formattedLine = formattedLine.includes("[")
+      ? formattedLine.substring(formattedLine.indexOf("["))
+      : formattedLine;
+    formattedLine = formattedLine.replace(ansiRegex, (match, code) => {
       // Map ANSI color codes to Tailwind classes
       const codes = code.split(";");
       const styles: string[] = [];
@@ -88,37 +120,43 @@ export function ConsoleOutput({ logs, className }: ConsoleOutputProps) {
   return (
     <div
       className={cn(
-        "font-mono text-sm leading-relaxed overflow-auto",
+        "relative font-mono text-sm leading-relaxed overflow-auto",
         className
       )}
     >
       {logs.length === 0 ? (
-        <div className="text-muted-foreground p-2">
-          No logs available. The server may be starting up or there might be an
-          issue.
+        <div className="text-muted-foreground text-sm p-2">
+          No logs available
         </div>
       ) : (
-        <div className="space-y-0.5 p-2">
-          {logs.map((line, i) => {
-            const level = getLogLevel(line);
-            const isSystemMessage = line.startsWith("===");
+        <div
+          ref={containerRef}
+          className="font-mono text-sm overflow-y-auto max-h-full"
+        >
+          {logs
+            .filter((l) => !l.toLowerCase().includes("rcon client /0:0"))
+            .map((line, i) => {
+              const level = getLogLevel(line);
+              const isSystemMessage =
+                line.startsWith("[") && line.includes("]");
 
-            return (
-              <div
-                key={i}
-                className={cn(
-                  "whitespace-pre-wrap break-words px-1 rounded",
-                  isSystemMessage && "text-blue-400 italic",
-                  level === "error" && "text-red-400",
-                  level === "warn" && "text-yellow-400",
-                  level === "info" && "text-blue-400",
-                  level === "debug" && "text-gray-400 text-xs",
-                  !isSystemMessage && level === "default" && "text-gray-300"
-                )}
-                dangerouslySetInnerHTML={{ __html: formatLine(line) }}
-              />
-            );
-          })}
+              return (
+                <div key={i} className="flex">
+                  <div
+                    className={cn(
+                      "whitespace-pre-wrap break-words px-1 rounded",
+                      isSystemMessage && "text-blue-400 italic",
+                      level === "error" && "text-red-400",
+                      level === "warn" && "text-yellow-400",
+                      level === "info" && "text-blue-400",
+                      level === "debug" && "text-gray-400 text-xs",
+                      !isSystemMessage && level === "default" && "text-gray-300"
+                    )}
+                    dangerouslySetInnerHTML={{ __html: formatLine(line) }}
+                  />
+                </div>
+              );
+            })}
         </div>
       )}
     </div>

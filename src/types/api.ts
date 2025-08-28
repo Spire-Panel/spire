@@ -63,6 +63,72 @@ export const createServerSchema = z.object({
   modpackId: z.string().or(z.number()).optional(),
 });
 
+export namespace DockerTypes {
+  export interface MemoryStats {
+    // Linux Memory Stats
+    stats: {
+      total_pgmajfault: number;
+      cache: number;
+      mapped_file: number;
+      total_inactive_file: number;
+      pgpgout: number;
+      rss: number;
+      total_mapped_file: number;
+      writeback: number;
+      unevictable: number;
+      pgpgin: number;
+      total_unevictable: number;
+      pgmajfault: number;
+      total_rss: number;
+      total_rss_huge: number;
+      total_writeback: number;
+      total_inactive_anon: number;
+      rss_huge: number;
+      hierarchical_memory_limit: number;
+      total_pgfault: number;
+      total_active_file: number;
+      active_anon: number;
+      total_active_anon: number;
+      total_pgpgout: number;
+      total_cache: number;
+      inactive_anon: number;
+      active_file: number;
+      pgfault: number;
+      inactive_file: number;
+      total_pgpgin: number;
+    };
+    max_usage: number;
+    usage: number;
+    failcnt: number;
+    limit: number;
+
+    // Windows Memory Stats
+    commitbytes?: number;
+    commitpeakbytes?: number;
+    privateworkingset?: number;
+  }
+
+  export interface CPUUsage {
+    percpu_usage: number[];
+    usage_in_usermode: number;
+    total_usage: number;
+    usage_in_kernelmode: number;
+  }
+
+  interface ThrottlingData {
+    periods: number;
+    throttled_periods: number;
+    throttled_time: number;
+  }
+
+  export interface CPUStats {
+    cpu_usage: CPUUsage;
+    system_cpu_usage: number;
+    online_cpus: number;
+    throttling_data: ThrottlingData;
+  }
+}
+
 export namespace GlideTypes {
   export interface Container {
     id: string;
@@ -86,5 +152,8 @@ export namespace GlideTypes {
         HostPort: string;
       }[];
     };
+    memory: DockerTypes.MemoryStats;
+    cpu: DockerTypes.CPUStats;
   }
+  export type ContainerCommandResponse = Array<string>;
 }
